@@ -96,6 +96,11 @@ def transform(s):
     s = swap(s, '</head>', NARROW_BAR + '</head>', 1)
     # 4. names
     s = swap(s, 'Earning or learning', 'Earning, learning and training', 5)
+    # 5. now both portals are public, link the sibling where a reader would follow it
+    s = swap(s, 'Covered in depth by the separate "Earning, learning and training" portal.',
+             f'Covered in depth by the separate <a href="{SIBLING}">Earning, learning and training</a> portal.', 1)
+    s = swap(s, '<h3>Earning, learning and training</h3><ul id="neetScope">',
+             f'<h3><a href="{SIBLING}">Earning, learning and training</a></h3><ul id="neetScope">', 1)
     left = sorted(set(PRIVATE_LINK.findall(s)))
     if left:
         raise SystemExit(f'publish: links to private artifacts remain: {left}')
