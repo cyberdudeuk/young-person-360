@@ -1,0 +1,21 @@
+# Runs the site checks on every push and pull request: no link to a private artifact, no email address, no retired
+# names, no tracking parameters, a QR code that really encodes the public address, and the standard files. Then
+# proves each check fails on a deliberate break. Free; no secrets; read-only.
+name: Checks
+on:
+  push: {branches: [main]}
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - run: pip install ruff==0.17.5 && ruff check tools
+      # C5 redraws the QR code to compare it, with the same pinned package tools/publish.py uses.
+      - run: pip install segno==1.6.6 pyyaml==6.0.2
+      - run: python tools/check.py
+      - run: python tools/check.py --negative

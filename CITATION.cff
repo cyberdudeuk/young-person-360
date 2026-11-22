@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: If you use this portal, please cite it as below.
+title: "Young Person 360º: before the label. Children and young people held, lost or unseen by the system, across the UK"
+type: dataset
+authors:
+  - family-names: Silva
+    given-names: Emanuel
+    orcid: https://orcid.org/0009-0000-5880-7219
+repository-code: https://github.com/cyberdudeuk/young-person-360
+url: https://cyberdudeuk.github.io/young-person-360/
+abstract: >-
+  An evidence-led, pan-UK view of every child and young person the state holds, loses or never sees, from birth: the
+  cohorts, the records kept about them, where those records break, and the departure events where a young person
+  leaves oversight. It introduces BEET and CHEET as the states before NEET. Every figure traces to its source. A
+  prototype, not an official government service.
+keywords: [children, young people, BEET, CHEET, NEET, looked-after children, children not in school, UK government]
+license: [MIT, OGL-UK-3.0]
+version: 1.6.0
+date-released: 2026-11-22

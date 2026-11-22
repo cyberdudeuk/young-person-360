@@ -1,0 +1,31 @@
+name: Contact the maintainer
+description: "A question, a correction, or an idea about Young Person 360º: before the label"
+title: "[Contact] "
+labels: ["contact"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This form is public. Do not include personal data, details about a young person, or anything above OFFICIAL.
+        There is no email route: this form is the way to contact the maintainer.
+
+        **If a child is in danger, call 999.** Children and young people can call Childline free on 0800 1111.
+        This form is not monitored for safeguarding concerns.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is it?
+      options: [A correction (something is wrong or out of date), A question, An idea, Something else]
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Which page? (paste its address)
+  - type: textarea
+    id: detail
+    attributes:
+      label: Your message
+      description: For a correction, give the source that shows what is right.
+    validations:
+      required: true

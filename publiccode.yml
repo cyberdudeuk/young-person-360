@@ -1,0 +1,28 @@
+publiccodeYmlVersion: "0.4"
+name: "Young Person 360º: before the label"
+url: https://github.com/cyberdudeuk/young-person-360
+landingURL: https://cyberdudeuk.github.io/young-person-360/
+softwareVersion: 1.6.0
+releaseDate: "2026-11-22"
+platforms: [web]
+categories: [knowledge-management]
+developmentStatus: beta
+softwareType: standalone/web
+description:
+  en-GB:
+    shortDescription: Children and young people held, lost or unseen by the system, across the UK, each figure sourced. Prototype.
+    longDescription: >-
+      A single page mapping every child and young person the state holds, loses or never sees, from birth to 25: the
+      cohorts and how many there are, the records kept about them, where the trail breaks, the departure events where
+      oversight ends, history, the four nations and the options. It checks itself in the browser. Independent work;
+      not an official government service.
+    features: [Cohort map, Record trail, Departure events, Four nations, Self-checking page]
+legal:
+  license: MIT AND OGL-UK-3.0
+maintenance:
+  type: internal
+  contacts:
+    - name: Emanuel Silva
+localisation:
+  localisationReady: false
+  availableLanguages: [en]
