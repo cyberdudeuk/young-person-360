@@ -16,3 +16,4 @@
 - The page's own checks K103 and K106 asked for the team inbox (ADR 0008). They now check the contact-form rule
   instead: no mailto link, no team inbox, and a contact-form link. The suite still has 107 checks.
 - New check C9: every YAML and CFF file parses. The contact form's description needed quoting once it named this portal.
+- Links to the sibling portal, *Earning, learning and training*, from the welcome note and the Relationship with NEET panel, now both are public.
