@@ -17,3 +17,4 @@
   instead: no mailto link, no team inbox, and a contact-form link. The suite still has 107 checks.
 - New check C9: every YAML and CFF file parses. The contact form's description needed quoting once it named this portal.
 - Links to the sibling portal, *Earning, learning and training*, from the welcome note and the Relationship with NEET panel, now both are public.
+- The source fixes (contact, names, layout, the page's own contact checks) were carried back into the artifact, now release 21 of it. `tools/publish.py` confirms them instead of reapplying them, and has a `--source` mode; the public page built from the new export is byte-identical to the one it replaces.

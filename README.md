@@ -35,6 +35,10 @@ publish: its own address and QR code become the public ones, links to private ar
 plain text, contact goes to the [contact form](https://github.com/cyberdudeuk/young-person-360/issues/new/choose), and
 names are brought up to date. Every replacement is asserted.
 
+The fixes that belong in the artifact too (contact, names, layout, the page's own contact checks) are *source fixes*:
+they were carried back into the artifact on 22 November 2026, and the build confirms them rather than reapplying
+them. `python3 tools/publish.py --source export.html out.html` applies only those, for republishing the artifact.
+
 The page runs 107 checks on itself in your browser, each with a negative test. `tools/check.py` runs 10 checks in CI,
 each proved by a deliberate break (`--negative`).
 

@@ -8,9 +8,15 @@ The portal is edited as a private Claude artifact. This step makes the exported 
   3. contact goes through this repository's public contact form: no email address, no team name;
   4. the former office name becomes the Government Data Directorate, and the sibling portal its current name.
 
+Steps 2 to 4 are source fixes: they belong in the artifact too, and were carried back into it on 22 November 2026.
+Each source fix is idempotent: applied if the export still needs it, confirmed if the export already has it, and an
+error if neither the old nor the new text is found. Step 1 and the private-link steps are public-only.
+
 Every replacement is asserted, so a change in the export stops the build instead of publishing something half-done.
 
-Run:  python3 tools/publish.py path/to/artifact-export.html   writes index.html
+Run:  python3 tools/publish.py path/to/artifact-export.html             writes index.html
+      python3 tools/publish.py --source path/to/export.html out.html   writes the export with the source fixes only,
+                                                                       for republishing the artifact
 """
 import re
 import sys
@@ -52,7 +58,61 @@ def swap(text, old, new, at_least=1):
     return text.replace(old, new)
 
 
+def fix(text, old, new, at_least=1):
+    """A source fix: replace old with new where the export still has old; accept an export that already has new."""
+    held = text.replace(new, '\x00')  # new may contain old (an insertion); keep finished work out of the count
+    n_old, n_new = held.count(old), text.count(new)
+    if n_old + n_new < at_least or (n_old == 0 and n_new == 0):
+        raise SystemExit(f'publish: expected {old[:70]!r} or its fixed form in the export, found neither')
+    return held.replace(old, new).replace('\x00', new)
+
+
+K106_NEW = ('{id:"K106",name:"Contact is by the public contact form only (rule of 3 Nov 2026, replacing ADR 0008): '
+            'no mailto link in the colophon, no team inbox anywhere, and a contact-form link",'
+            'run:d=>d.OWNER_LINK.length===0&&d.INBOX===0&&d.CONTACT_FORM>0,breakIt:d=>{d.INBOX=1}}')
+
+
+def source_fixes(s):
+    """Fixes that belong in the artifact as well as the public page."""
+    # 2a. the BHM hub is public now
+    s = fix(s, 'https://claude.ai/artifact/VtxD1e8ZSzBR4NWP2RTB7y', 'https://cyberdudeuk.github.io/black-mixed-heritage/', 1)
+    # 3. contact by the public form only
+    s = fix(s, '<dd><a href="mailto:GDSDataManagement@dsit.gov.uk">Emanuel Silva</a>, Data Management Lead, Office of the Chief Data Officer, Government Digital Service</dd>',
+            '<dd>Emanuel Silva, Data Management Lead, Government Data Directorate, Government Digital Service</dd>' + CONTACT_FOOTER, 1)
+    s = fix(s, '"contact": "GDSDataManagement@dsit.gov.uk"', '"contact": "the contact form"', 1)
+    s = fix(s, 'It is run by the Data Management team, Office of the Chief Data Officer, Government Digital Service.',
+            'It is run by Emanuel Silva, Government Data Directorate, Government Digital Service.', 1)
+    s = fix(s, 'email the Data Management team at GDSDataManagement@dsit.gov.uk.', 'use the contact form.', 1)
+    s = fix(s, 'el("a",{href:"mailto:"+A11Y.contact+"?subject=Before%20the%20label%20feedback",text:A11Y.contact})',
+            f'el("a",{{href:"{REPO}/issues/new/choose",text:A11Y.contact}})', 1)
+    # 3b. the page's own checks: K103 and K106 encoded contact by team inbox (ADR 0008); restated for the contact-form
+    #     rule (3 Nov 2026) instead of deleted, so the suite never shrinks
+    s = fix(s, 'mail:!!col.querySelector(\'a[href^="mailto:GDSDataManagement@dsit.gov.uk"]\')',
+            'contact:!!col.querySelector(\'a[href$="/issues/new/choose"]\')', 1)
+    s = fix(s, '&&d.COLO.bc===d.RELEASE&&d.COLO.mail,', '&&d.COLO.bc===d.RELEASE&&d.COLO.contact&&d.COLO.rows.includes("Contact"),', 1)
+    s = fix(s, '.split("GDSData"+"Management").length-1,',
+            '.split("GDSData"+"Management").length-1,CONTACT_FORM:document.querySelectorAll(\'a[href$="/issues/new/choose"]\').length,', 1)
+    if K106_NEW not in s:
+        k106 = re.search(r'\{id:"K106",name:"[^"]*",run:d=>[^\n]*?breakIt:d=>\{d\.INBOX=0\}\}', s)
+        if not k106:
+            raise SystemExit('publish: self-check K106 not found in either form')
+        s = s[:k106.start()] + K106_NEW + s[k106.end():]
+    # 3c. cap every auto-fit grid minimum at the container width; an uncapped rule later in the cascade beat the
+    #     artifact's own capped rule (D41) and made the page scroll sideways at 320px (check C8)
+    s = UNCAPPED.sub(lambda m: f'{m.group(1)}minmax(min({m.group(2)},100%),1fr)', s)
+    s = fix(s, '</head>', NARROW_BAR + '</head>', 1)
+    # 4. names
+    s = fix(s, 'Earning or learning', 'Earning, learning and training', 5)
+    # 5. now both portals are public, link the sibling where a reader would follow it
+    s = fix(s, 'Covered in depth by the separate "Earning, learning and training" portal.',
+            f'Covered in depth by the separate <a href="{SIBLING}">Earning, learning and training</a> portal.', 1)
+    s = fix(s, '<h3>Earning, learning and training</h3><ul id="neetScope">',
+            f'<h3><a href="{SIBLING}">Earning, learning and training</a></h3><ul id="neetScope">', 1)
+    return s
+
+
 def transform(s):
+    s = source_fixes(s)
     # 1. the page's own address and its QR code (given a title and description too)
     m = re.search(r'(<svg[^>]*class="qr"[^>]*viewBox=")0 0 (\d+) \2("[^>]*>)(.*?)(<path d=")([^"]*)(")', s, re.DOTALL)
     if not m or SELF not in m.group(0):
@@ -61,46 +121,10 @@ def transform(s):
     title = '' if '<title>' in m.group(4) else f'<title>QR code</title><desc>QR code that opens this page: {PUBLIC}</desc>'
     s = s[:m.start()] + m.group(1) + f'0 0 {size} {size}' + m.group(3) + title + m.group(4) + m.group(5) + d + m.group(7) + s[m.end():]
     s = swap(s, SELF, PUBLIC, 3)
-    # 2. links to private artifacts
-    s = swap(s, 'https://claude.ai/artifact/VtxD1e8ZSzBR4NWP2RTB7y', 'https://cyberdudeuk.github.io/black-mixed-heritage/', 1)
+    # 2b. links to private artifacts that have no public home
     s = swap(s, 'const DOC_LINK="https://claude.ai/code/artifact/b9f5521b-1157-4425-bf1e-78c00c05d601";', 'const DOC_LINK="";', 1)
     s = swap(s, 'el("a",{href:DOC_LINK,target:"_blank",rel:"noopener",text:"Before the label: a young person\'s own 360º view of the state"})',
              'el("span",{text:"Before the label: a young person\'s own 360º view of the state (not yet published)"})', 1)
-    # 3. contact by the public form only
-    s = swap(s, '<dd><a href="mailto:GDSDataManagement@dsit.gov.uk">Emanuel Silva</a>, Data Management Lead, Office of the Chief Data Officer, Government Digital Service</dd>',
-             '<dd>Emanuel Silva, Data Management Lead, Government Data Directorate, Government Digital Service</dd>' + CONTACT_FOOTER, 1)
-    s = swap(s, '"contact": "GDSDataManagement@dsit.gov.uk"', '"contact": "the contact form"', 1)
-    s = swap(s, 'It is run by the Data Management team, Office of the Chief Data Officer, Government Digital Service.',
-             'It is run by Emanuel Silva, Government Data Directorate, Government Digital Service.', 1)
-    s = swap(s, 'email the Data Management team at GDSDataManagement@dsit.gov.uk.', 'use the contact form.', 1)
-    s = swap(s, 'el("a",{href:"mailto:"+A11Y.contact+"?subject=Before%20the%20label%20feedback",text:A11Y.contact})',
-             f'el("a",{{href:"{REPO}/issues/new/choose",text:A11Y.contact}})', 1)
-    # 3b. the page's own checks: K103 and K106 encoded contact by team inbox (ADR 0008); restate them for the
-    #     contact-form rule (3 Nov 2026) instead of deleting them, so the suite never shrinks
-    s = swap(s, 'mail:!!col.querySelector(\'a[href^="mailto:GDSDataManagement@dsit.gov.uk"]\')',
-             'contact:!!col.querySelector(\'a[href$="/issues/new/choose"]\')', 1)
-    s = swap(s, '&&d.COLO.bc===d.RELEASE&&d.COLO.mail,', '&&d.COLO.bc===d.RELEASE&&d.COLO.contact&&d.COLO.rows.includes("Contact"),', 1)
-    s = swap(s, '.split("GDSData"+"Management").length-1,',
-             '.split("GDSData"+"Management").length-1,CONTACT_FORM:document.querySelectorAll(\'a[href$="/issues/new/choose"]\').length,', 1)
-    k106 = re.search(r'\{id:"K106",name:"[^"]*",run:d=>[^\n]*?breakIt:d=>\{d\.INBOX=0\}\}', s)
-    if not k106:
-        raise SystemExit('publish: self-check K106 not found where expected')
-    s = s[:k106.start()] + ('{id:"K106",name:"Contact is by the public contact form only (rule of 3 Nov 2026, replacing ADR 0008): '
-                            'no mailto link in the colophon, no team inbox anywhere, and a contact-form link",'
-                            'run:d=>d.OWNER_LINK.length===0&&d.INBOX===0&&d.CONTACT_FORM>0,breakIt:d=>{d.INBOX=1}}') + s[k106.end():]
-    # 3c. cap every auto-fit grid minimum at the container width; an uncapped rule later in the cascade beat the
-    #     artifact's own capped rule (D41) and made the page scroll sideways at 320px (check C8)
-    s, n = UNCAPPED.subn(lambda m: f'{m.group(1)}minmax(min({m.group(2)},100%),1fr)', s)
-    if n < 1:
-        raise SystemExit('publish: expected uncapped grid minimums in the export, found none')
-    s = swap(s, '</head>', NARROW_BAR + '</head>', 1)
-    # 4. names
-    s = swap(s, 'Earning or learning', 'Earning, learning and training', 5)
-    # 5. now both portals are public, link the sibling where a reader would follow it
-    s = swap(s, 'Covered in depth by the separate "Earning, learning and training" portal.',
-             f'Covered in depth by the separate <a href="{SIBLING}">Earning, learning and training</a> portal.', 1)
-    s = swap(s, '<h3>Earning, learning and training</h3><ul id="neetScope">',
-             f'<h3><a href="{SIBLING}">Earning, learning and training</a></h3><ul id="neetScope">', 1)
     left = sorted(set(PRIVATE_LINK.findall(s)))
     if left:
         raise SystemExit(f'publish: links to private artifacts remain: {left}')
@@ -108,6 +132,10 @@ def transform(s):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) == 4 and sys.argv[1] == '--source':
+        out = source_fixes(Path(sys.argv[2]).read_text(encoding='utf-8'))
+        Path(sys.argv[3]).write_text(out, encoding='utf-8')
+        raise SystemExit(f'wrote {sys.argv[3]} with the source fixes ({len(out):,} characters)')
     if len(sys.argv) != 2:
         raise SystemExit(__doc__)
     out = transform(Path(sys.argv[1]).read_text(encoding='utf-8'))
