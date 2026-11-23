@@ -3,7 +3,7 @@
 
 C1  no link to a private Claude artifact (the public page must work for everyone)
 C2  no email address anywhere: contact is by the public form only
-C3  no former office name and no team name in the published files
+C3  no former office name and no team name, in any file of the repository
 C4  no link carries a tracking parameter
 C5  the colophon QR code carries the public address, and its drawing is that address (redrawn, not stale)
 C6  the standard files are present, and the page links to the contact form
@@ -11,10 +11,16 @@ C7  the page has one main heading in its static markup at most (the welcome scre
 C8  no auto-fit grid has an uncapped minimum width (Young Person 360º overflowed at 320px: a later uncapped
     minmax(19rem,1fr) overrode the capped one, so the earlier fix, D41, never took effect)
 C9  every YAML and CFF file parses (an unquoted "360º: before" in the contact form would have made GitHub drop it)
+C10 no personal details of the maintainer (name, ORCID iD, role, directorate) in any file of the repository; the
+    colophon names no owner and contact is by the public form only (23 November 2026)
+
+C3 and C10 compare hashed words and phrases, so this file never spells out what it keeps out. Each list also holds a
+canary that the negative test plants, which proves the matching works.
 
 Run:  python3 tools/check.py              all checks
       python3 tools/check.py --negative   break each check on a copy and prove it fails
 """
+import hashlib
 import re
 import shutil
 import sys
@@ -30,9 +36,32 @@ FILES = ['index.html', '404.html']
 STANDARD = ['README.md', 'LICENSE', 'CITATION.cff', 'SECURITY.md', 'CHANGELOG.md', 'publiccode.yml', '404.html',
             '.nojekyll', '.github/ISSUE_TEMPLATE/contact.yml', '.github/ISSUE_TEMPLATE/config.yml']
 EMAIL = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.(?:uk|com|org|net|gov|io)\b')
-BANNED = re.compile(r'Office of the Chief Data Officer|\bOCDO\b|Data Management Team', re.IGNORECASE)
+FORMER_NAMES = {'c141b36dc5d06271', 'da1f41aae881231c', '602fa48e40f5b901', '0079453a63a5c238'}   # C3
+PERSONAL = {'fcd2b45b8eda145e', '4ea70ab7edf19c6d', '97f5cc1b205cbd08', '8a0217b61d3a5f9e', '42edde030c27ec5a',
+            'fb19476c99a8e2c6'}                                                                  # C10
+TEXT_SUFFIXES = {'.html', '.md', '.py', '.yml', '.yaml', '.cff', '.json', '.txt', ''}
 UNCAPPED_GRID = re.compile(r'repeat\(auto-fi[lt],\s*minmax\(\d+(?:\.\d+)?(?:rem|em|px),\s*1fr\)\)')
 TRACKING = re.compile(r'[?&](?:utm_[a-z]+|gad_[a-z]+|gclid|fbclid|mc_eid|_hsenc)=')
+
+
+def _hashed_hits(text, hashes):
+    """Words and phrases of up to six words in text whose hash is in hashes; returns their positions, not the text."""
+    words = re.findall(r'[a-z0-9]+(?:-[a-z0-9]+)*', text.lower())
+    hits = 0
+    for n in range(1, 7):
+        for i in range(len(words) - n + 1):
+            if hashlib.sha256(' '.join(words[i:i + n]).encode()).hexdigest()[:16] in hashes:
+                hits += 1
+    return hits
+
+
+def _repo_texts(root):
+    for p in sorted(root.rglob('*')):
+        if p.is_file() and '.git' not in p.parts and p.suffix in TEXT_SUFFIXES:
+            try:
+                yield p.relative_to(root), p.read_text(encoding='utf-8')
+            except UnicodeDecodeError:
+                continue
 
 
 def problems(root):
@@ -44,8 +73,6 @@ def problems(root):
             out.append(f'C1 {f} links to a private artifact: {link}')
         for e in sorted(set(EMAIL.findall(t)) - getattr(publish, 'ALLOWED_EMAILS', set())):
             out.append(f'C2 {f} shows an email address: {e}')
-        if BANNED.search(t):
-            out.append(f'C3 {f} names {BANNED.search(t).group(0)}')
         if TRACKING.search(t):
             out.append(f'C4 {f} has a tracking parameter: {TRACKING.search(t).group(0)}')
     page = texts.get('index.html', '')
@@ -73,6 +100,11 @@ def problems(root):
             yaml.safe_load(f.read_text(encoding='utf-8'))
         except yaml.YAMLError as e:
             out.append(f'C9 {f.relative_to(root)} does not parse: {str(e).splitlines()[0]}')
+    for f, t in _repo_texts(root):
+        if _hashed_hits(t, FORMER_NAMES):
+            out.append(f'C3 {f} names the former office or the team')
+        if _hashed_hits(t, PERSONAL):
+            out.append(f'C10 {f} carries a personal detail of the maintainer')
     return out
 
 
@@ -84,7 +116,7 @@ def _edit(root, f, fn):
 BREAKS = {
     'C1': lambda r: _edit(r, 'index.html', lambda t: t + '<a href="https://claude.ai/artifact/AbC123">x</a>'),
     'C2': lambda r: _edit(r, '404.html', lambda t: t + '<p>someone@example.org.uk</p>'),
-    'C3': lambda r: _edit(r, 'index.html', lambda t: t + '<p>run by the Data Management team</p>'),
+    'C3': lambda r: _edit(r, 'README.md', lambda t: t + '\n' + 'zz-canary-' + 'c3' + '\n'),
     'C4': lambda r: _edit(r, 'index.html', lambda t: t + '<a href="https://www.gov.uk/x?utm_source=y">x</a>'),
     'C5': lambda r: _edit(r, 'index.html', lambda t: t.replace('M4,4h1v1h-1z', 'M5,5h1v1h-1z', 1)),
     'C6': lambda r: (Path(r) / 'SECURITY.md').unlink(),
@@ -92,6 +124,7 @@ BREAKS = {
     'C7': lambda r: _edit(r, 'index.html', lambda t: t.replace('<body', '<body><h1>a</h1><h1>b</h1>', 1)),
     'C8': lambda r: _edit(r, 'index.html', lambda t: t.replace('</style>', '.x{grid-template-columns:repeat(auto-fit,minmax(19rem,1fr))}</style>', 1)),
     'C9': lambda r: _edit(r, '.github/ISSUE_TEMPLATE/config.yml', lambda t: t + '\nbroken: [unclosed\n'),
+    'C10': lambda r: _edit(r, 'CITATION.cff', lambda t: t + '# ' + 'zz-canary-' + 'c10' + '\n'),
 }
 
 

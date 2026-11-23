@@ -22,7 +22,7 @@ legal:
 maintenance:
   type: internal
   contacts:
-    - name: Emanuel Silva
+    - name: "Young Person 360º contributors"
 localisation:
   localisationReady: false
   availableLanguages: [en]

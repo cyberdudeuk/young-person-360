@@ -3,9 +3,7 @@ message: If you use this portal, please cite it as below.
 title: "Young Person 360º: before the label. Children and young people held, lost or unseen by the system, across the UK"
 type: dataset
 authors:
-  - family-names: Silva
-    given-names: Emanuel
-    orcid: https://orcid.org/0009-0000-5880-7219
+  - name: "Young Person 360º contributors"
 repository-code: https://github.com/cyberdudeuk/young-person-360
 url: https://cyberdudeuk.github.io/young-person-360/
 abstract: >-

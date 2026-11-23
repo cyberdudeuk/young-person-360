@@ -1,11 +1,23 @@
 # Changelog
 
+## 23 November 2026: no named owner; contact by form only
+
+- The colophon, the accessibility statement, the citation file, the licence and the catalogue entry no longer name a
+  person or give a role, directorate or ORCID iD. The licence and citation credit the portal's contributors. Contact
+  is by the public contact form only.
+- The page's own check K103 now requires a colophon with no Owner row; K106 now counts every email address on the page
+  except the NSPCC helpline, instead of looking for one inbox by name.
+- New check C10 keeps personal details out of every file of the repository, and C3 now covers every file too. Both
+  compare hashed words and phrases, so the checker never spells out what it keeps out; a planted canary proves each.
+- The build no longer quotes the old contact text it used to replace: the artifact carries the fixes, and the build
+  confirms them.
+
 ## 22 November 2026: published as a public site
 
 - First public release, from release 1.6.0 of the private artifact, under the name *Young Person 360º: before the
   label*.
 - Contact goes through the public contact form. The colophon and the accessibility statement no longer show an email
-  address or a team name, and name the Government Data Directorate.
+  address or a team name.
 - The sibling NEET portal is called by its current name, *Earning, learning and training*, which keeps the 16 to 24
   record trail and risk tools; this portal owns children held, lost or unseen from birth.
 - The colophon QR code opens the public address and has a title and description.
