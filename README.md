@@ -39,12 +39,12 @@ The fixes that belong in the artifact too (contact, names, layout, the page's ow
 they were carried back into the artifact on 22 November 2026, and the build confirms them rather than reapplying
 them. `python3 tools/publish.py --source export.html out.html` applies only those, for republishing the artifact.
 
-The page runs 107 checks on itself in your browser, each with a negative test. `tools/check.py` runs 10 checks in CI,
+The page runs 107 checks on itself in your browser, each with a negative test. `tools/check.py` runs 11 checks in CI,
 each proved by a deliberate break (`--negative`).
 
 ```
 python3 tools/publish.py path/to/export.html   # after editing the artifact
-python3 tools/check.py                          # 10 checks
+python3 tools/check.py                          # 11 checks
 python3 tools/check.py --negative               # prove each check fails when it should
 ```
 

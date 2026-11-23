@@ -6,7 +6,7 @@ The portal is edited as a private Claude artifact. This step makes the exported 
   1. its own address, everywhere it appears, becomes the public address, and the colophon QR code is redrawn for it;
   2. links to private artifacts become public addresses, or plain text where nothing public exists;
   3. contact goes through this repository's public contact form: no email address, no team name;
-  4. the former office name becomes the Government Data Directorate, and the sibling portal its current name.
+  4. the sibling portal is called by its current name.
 
 Steps 2 to 4 are source fixes: they belong in the artifact too, and were carried back into it on 22 November 2026.
 Each source fix is idempotent: applied if the export still needs it, confirmed if the export already has it, and an
@@ -58,6 +58,12 @@ def swap(text, old, new, at_least=1):
     return text.replace(old, new)
 
 
+def confirm(text, done):
+    """A source fix the artifact already carries: the build checks it is there and quotes nothing it replaced."""
+    if done not in text:
+        raise SystemExit(f'publish: expected {done[:70]!r} in the export; has the artifact lost a fix?')
+
+
 def fix(text, old, new, at_least=1):
     """A source fix: replace old with new where the export still has old; accept an export that already has new."""
     held = text.replace(new, '\x00')  # new may contain old (an insertion); keep finished work out of the count
@@ -68,7 +74,7 @@ def fix(text, old, new, at_least=1):
 
 
 K106_NEW = ('{id:"K106",name:"Contact is by the public contact form only (rule of 3 Nov 2026, replacing ADR 0008): '
-            'no mailto link in the colophon, no team inbox anywhere, and a contact-form link",'
+            'no mailto link in the colophon, no email address anywhere but the NSPCC helpline, and a contact-form link",'
             'run:d=>d.OWNER_LINK.length===0&&d.INBOX===0&&d.CONTACT_FORM>0,breakIt:d=>{d.INBOX=1}}')
 
 
@@ -76,27 +82,16 @@ def source_fixes(s):
     """Fixes that belong in the artifact as well as the public page."""
     # 2a. the BHM hub is public now
     s = fix(s, 'https://claude.ai/artifact/VtxD1e8ZSzBR4NWP2RTB7y', 'https://cyberdudeuk.github.io/black-mixed-heritage/', 1)
-    # 3. contact by the public form only
-    s = fix(s, '<dd><a href="mailto:GDSDataManagement@dsit.gov.uk">Emanuel Silva</a>, Data Management Lead, Office of the Chief Data Officer, Government Digital Service</dd>',
-            '<dd>Emanuel Silva, Data Management Lead, Government Data Directorate, Government Digital Service</dd>' + CONTACT_FOOTER, 1)
-    s = fix(s, '"contact": "GDSDataManagement@dsit.gov.uk"', '"contact": "the contact form"', 1)
-    s = fix(s, 'It is run by the Data Management team, Office of the Chief Data Officer, Government Digital Service.',
-            'It is run by Emanuel Silva, Government Data Directorate, Government Digital Service.', 1)
-    s = fix(s, 'email the Data Management team at GDSDataManagement@dsit.gov.uk.', 'use the contact form.', 1)
-    s = fix(s, 'el("a",{href:"mailto:"+A11Y.contact+"?subject=Before%20the%20label%20feedback",text:A11Y.contact})',
-            f'el("a",{{href:"{REPO}/issues/new/choose",text:A11Y.contact}})', 1)
-    # 3b. the page's own checks: K103 and K106 encoded contact by team inbox (ADR 0008); restated for the contact-form
-    #     rule (3 Nov 2026) instead of deleted, so the suite never shrinks
-    s = fix(s, 'mail:!!col.querySelector(\'a[href^="mailto:GDSDataManagement@dsit.gov.uk"]\')',
-            'contact:!!col.querySelector(\'a[href$="/issues/new/choose"]\')', 1)
-    s = fix(s, '&&d.COLO.bc===d.RELEASE&&d.COLO.mail,', '&&d.COLO.bc===d.RELEASE&&d.COLO.contact&&d.COLO.rows.includes("Contact"),', 1)
-    s = fix(s, '.split("GDSData"+"Management").length-1,',
-            '.split("GDSData"+"Management").length-1,CONTACT_FORM:document.querySelectorAll(\'a[href$="/issues/new/choose"]\').length,', 1)
-    if K106_NEW not in s:
-        k106 = re.search(r'\{id:"K106",name:"[^"]*",run:d=>[^\n]*?breakIt:d=>\{d\.INBOX=0\}\}', s)
-        if not k106:
-            raise SystemExit('publish: self-check K106 not found in either form')
-        s = s[:k106.start()] + K106_NEW + s[k106.end():]
+    # 3. contact by the public form only, no email address and no named owner (rules of 3 and 23 November 2026).
+    #    The artifact carries these since 23 November 2026, so the build confirms them and quotes nothing it replaced;
+    #    the page's own checks K103 and K106 enforce them in the browser.
+    for done in (CONTACT_FOOTER, '"contact": "the contact form"', 'use the contact form.',
+                 f'el("a",{{href:"{REPO}/issues/new/choose",text:A11Y.contact}})',
+                 'contact:!!col.querySelector(\'a[href$="/issues/new/choose"]\')',
+                 '&&d.COLO.bc===d.RELEASE&&d.COLO.contact&&d.COLO.rows.includes("Contact"),',
+                 '&&!d.COLO.rows.includes("Owner")&&',
+                 'CONTACT_FORM:document.querySelectorAll(\'a[href$="/issues/new/choose"]\').length,', K106_NEW):
+        confirm(s, done)
     # 3c. cap every auto-fit grid minimum at the container width; an uncapped rule later in the cascade beat the
     #     artifact's own capped rule (D41) and made the page scroll sideways at 320px (check C8)
     s = UNCAPPED.sub(lambda m: f'{m.group(1)}minmax(min({m.group(2)},100%),1fr)', s)
